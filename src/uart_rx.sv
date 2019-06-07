@@ -1,7 +1,8 @@
 module uart_rx #(
-  parameter int CLK_FREQ  = 100E6,
-  parameter int NCO_WIDTH = 16,
-  parameter int BAUD_RATE = 115200)
+  parameter int  CLK_FREQ  = 100E6,
+  parameter int  NCO_WIDTH = 16,
+  parameter int  BAUD_RATE = 115200,
+  parameter      PARITY    = "ODD")
 (
   input  logic       clk,
   input  logic       rst,
@@ -29,7 +30,8 @@ module uart_rx #(
   logic                 bit_vld;
   logic                 busy;
 
-  logic [8:0]           rdata_sr;
+  logic [9:0]           rdata_sr;
+  logic                 calc_parity;
 
   // nco, 16x baud rx oversample
   always_ff @(posedge clk) begin
@@ -59,7 +61,7 @@ module uart_rx #(
     end else begin
       if (start_bit_det) begin
         busy <= 1'b1;
-      end else if (bit_cnt == 7) begin
+      end else if (baud_rx_en && bit_cnt == 9) begin
         busy <= 1'b0;
       end
     end
@@ -86,22 +88,32 @@ module uart_rx #(
 
   always_ff @(posedge clk) begin
     if (rst) begin
+      bit_cnt   <= '0;
       rdata_vld <= 1'b0;
-      rdata     <= '0;
-    end else if (baud_rx_en) begin
-      if (bit_vld) begin
-        rdata_sr <= {rdata_sr[$size(rdata_sr)-1:0], uart_rx};
+    end else begin
+      rdata_vld <= 1'b0;
 
-        if (bit_cnt < 7) begin
+      if (baud_rx_en && bit_vld) begin
+        if (bit_cnt < 9) begin
           bit_cnt++;
         end else begin
           bit_cnt <= '0;
+
+          if (rdata[8] == calc_parity && rdata[9]) begin
+            rdata_vld <= 1'b1;
+          end
         end
       end
     end
   end
 
-  assign parity = ^rdata_sr[$size(rdata_sr)-1:1];
-  assign rdata  = rdata_sr[1:7];
+  always_ff @(posedge clk) begin
+    if (baud_rx_en && bit_vld) begin
+      rdata_sr <= {rdata_sr[$size(rdata_sr)-1:0], uart_rx};
+    end
+  end
+
+  assign calc_parity = (PARITY == "ODD") ? ^rdata_sr[$size(rdata_sr)-1:1] : ~^rdata_sr[$size(rdata_sr)-1:1];
+  assign rdata       = rdata_sr[2:9];
 
 endmodule
