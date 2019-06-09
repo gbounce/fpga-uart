@@ -77,8 +77,8 @@ module uart_rx #(
 
       if (busy) begin
         if (center_sample_cnt < 15) begin
-          center_sample_cnt++;
-          bit_vld <= 1'b1;
+          center_sample_cnt <= center_sample_cnt + 1;
+          bit_vld           <= 1'b1;
         end else begin
           center_sample_cnt <= '0;
         end
@@ -95,7 +95,7 @@ module uart_rx #(
 
       if (baud_rx_en && bit_vld) begin
         if (bit_cnt < 9) begin
-          bit_cnt++;
+          bit_cnt <= bit_cnt + 1;
         end else begin
           bit_cnt <= '0;
 
