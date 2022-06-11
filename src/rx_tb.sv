@@ -1,0 +1,110 @@
+// simple rx tb
+// send a byte of data at a specified baud rate
+
+module rx_tb;
+  localparam int  BAUD_RATE      = 115200;
+  localparam real BAUD_PERIOD_NS = 1.0/BAUD_RATE * 1e9;
+  
+  logic clk, rst, bclk;
+  logic uart_rx, rdata_vld;
+  logic [7:0] rdata;
+  logic [7:0] sent_data [$];
+  logic [7:0] expected_data;
+  logic pass_fail = 1'b1;
+    
+  uart_rx U_DUT (
+    .clk       (clk),
+    .rst       (rst),
+    .uart_rx   (uart_rx),
+    .rdata_vld (rdata_vld),
+    .rdata     (rdata)
+  );
+
+  initial begin
+    $dumpfile("wave.vcd");
+    $dumpvars(1, U_DUT);
+    $dumpvars(1, rx_tb);
+  end
+
+  // 100 mhz clk
+  initial begin
+    clk = 0;
+    forever clk = #5 ~clk;
+  end
+
+  // uart baud clk
+  initial begin
+    bclk = 0;
+    forever bclk = #(BAUD_PERIOD_NS/2 * 1ns) ~bclk;
+  end
+
+  // reset gen
+  initial begin
+    rst <= 1;
+    #1us;
+    @(posedge clk)
+    rst <= 0;
+  end
+  
+  // driver
+  task tx_byte(input logic [7:0] data);
+    $display("SENDING 0x%h", data);
+
+    sent_data.push_front(data);
+
+    // start bit
+    @(posedge bclk); 
+    uart_rx <= 1'b0;
+
+    // data, lsb first
+    for (int i=0; i<8; i++) begin
+      @(posedge bclk);
+      uart_rx <= data[i];
+    end
+
+    // parity
+    @(posedge bclk);
+    uart_rx <= ~^data;
+
+    // deassert
+    @(posedge bclk);
+    uart_rx <= 1;
+
+    // guarantee stop bit time before returning
+    repeat(2) @(posedge bclk);
+  endtask
+
+  // data monitor
+  always begin
+      @(posedge rdata_vld);
+      expected_data = sent_data.pop_front();
+      
+      if (rdata == expected_data) begin
+        $display("RECEIVED DATA: 0x%h, OK", rdata);
+      end else begin
+        $error("DATA MISMATCH, EXPECTED 0x%h, GOT 0x%h", expected_data, rdata);
+        pass_fail <= 1'b0;
+      end
+  end
+
+  // test
+  initial begin
+    $display("TESTBENCH START");
+    $display("BAUD RATE SET TO %d", BAUD_RATE);
+    @(posedge rst);
+    #2us;
+    tx_byte(8'h12);
+    tx_byte(8'hFF);    
+    tx_byte(8'h00);
+    tx_byte(8'hAA);    
+    tx_byte(8'h55);    
+    #10us;
+    $display("TESTBENCH END");
+    if (pass_fail) begin
+        $display("TEST PASSED :)");
+    end else begin
+        $display("TEST FAILED :(");
+    end
+    $finish;
+  end
+endmodule
