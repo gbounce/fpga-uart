@@ -1,11 +1,11 @@
 `timescale 1ns / 1ns
 
 module uart_rx #(
-  parameter int    CLK_FREQ  = 100E6,
-  parameter int    NCO_WIDTH = 16,
-  parameter int    BAUD_RATE = 115200,
-  parameter int    STOP_BITS = 1,
-  parameter string PARITY    = "ODD")
+  parameter int CLK_FREQ    = 100E6,
+  parameter int NCO_WIDTH   = 16,
+  parameter int BAUD_RATE   = 115200,
+  parameter int STOP_BITS   = 1,
+  parameter bit EVEN_PARITY = 0) // even = 1, odd = 0
 (
   input  logic       clk,
   input  logic       rst,
@@ -138,8 +138,8 @@ module uart_rx #(
   end
 
   // select bits and parity calculation
-  assign rdata_tmp   = (STOP_BITS == 1)  ? rdata_sr[$size(rdata_sr)-2:1] : rdata_sr[$size(rdata_sr)-1:2];
-  assign calc_parity = (PARITY == "ODD") ? ~^rdata_tmp : ^rdata_tmp;
+  assign rdata_tmp   = (STOP_BITS == 1) ? rdata_sr[$size(rdata_sr)-2:1] : rdata_sr[$size(rdata_sr)-1:2];
+  assign calc_parity = EVEN_PARITY ? ^rdata_tmp : ~^rdata_tmp;
 
   always_ff @(posedge clk) begin
     if (rst) begin
