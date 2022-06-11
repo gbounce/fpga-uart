@@ -118,8 +118,8 @@ module uart_rx #(
         end else begin
           bit_cnt <= '0;
 
-          if ((STOP_BITS == 1 && uart_rx_sync && 
-              rdata_sr[$size(rdata_sr)-1] == calc_parity) || 
+          if ((STOP_BITS != 0 && uart_rx_sync && 
+              rdata_sr[$size(rdata_sr)-STOP_BITS] == calc_parity) || 
               (STOP_BITS == 0 && uart_rx_sync == calc_parity)) begin
             rdata_vld <= 1'b1;
           end else begin
@@ -138,7 +138,7 @@ module uart_rx #(
   end
 
   // select bits and parity calculation
-  assign rdata_tmp   = (STOP_BITS == 1) ? rdata_sr[$size(rdata_sr)-2:1] : rdata_sr[$size(rdata_sr)-1:2];
+  assign rdata_tmp   = (STOP_BITS != 0) ? rdata_sr[$size(rdata_sr)-1-STOP_BITS:1] : rdata_sr[$size(rdata_sr)-1:STOP_BITS+1];
   assign calc_parity = EVEN_PARITY ? ^rdata_tmp : ~^rdata_tmp;
 
   always_ff @(posedge clk) begin

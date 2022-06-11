@@ -5,6 +5,7 @@ module rx_tb;
   localparam int  BAUD_RATE      = 115200;
   localparam real BAUD_PERIOD_NS = 1.0/BAUD_RATE * 1e9;
   localparam bit  EVEN_PARITY    = 1;
+  localparam int  STOP_BITS      = 1;
   
   logic clk, rst, bclk;
   logic uart_err, uart_rx, rdata_vld;
@@ -16,7 +17,7 @@ module rx_tb;
   uart_rx #(.CLK_FREQ    (100e6),
             .NCO_WIDTH   (16),
             .BAUD_RATE   (BAUD_RATE),
-            .STOP_BITS   (1),
+            .STOP_BITS   (STOP_BITS),
             .EVEN_PARITY (EVEN_PARITY)
   ) 
   U_DUT (
@@ -108,8 +109,9 @@ module rx_tb;
     if (EVEN_PARITY) set_parity = "EVEN";
     else set_parity = "ODD"; // icarus choking on ternary
     $display("TESTBENCH START");
-    $display("BAUD RATE SET TO %d", BAUD_RATE);
+    $display("BAUD RATE SET TO %0d", BAUD_RATE);
     $display("PARITY SET TO %s", set_parity);
+    $display("STOP BITS SET TO %0d", STOP_BITS);
     @(posedge rst);
     #2us;
     tx_byte(8'h12);
