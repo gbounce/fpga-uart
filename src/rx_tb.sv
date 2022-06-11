@@ -15,7 +15,7 @@ module rx_tb;
     
   uart_rx #(.CLK_FREQ    (100e6),
             .NCO_WIDTH   (16),
-            .BAUD_RATE   (115200),
+            .BAUD_RATE   (BAUD_RATE),
             .STOP_BITS   (1),
             .EVEN_PARITY (EVEN_PARITY)
   ) 
