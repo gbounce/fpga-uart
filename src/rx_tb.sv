@@ -6,20 +6,22 @@ module rx_tb;
   localparam real BAUD_PERIOD_NS = 1.0/BAUD_RATE * 1e9;
   localparam bit  EVEN_PARITY    = 1;
   localparam int  STOP_BITS      = 1;
-  
+
   logic clk, rst, bclk;
-  logic uart_err, uart_rx, rdata_vld;
+  logic uart_rx = 1;
+  logic uart_vld;
+  logic uart_err;
   logic [7:0] rdata;
   logic [7:0] sent_data [$];
   logic [7:0] expected_data;
   logic pass_fail = 1'b1;
-    
+
   uart_rx #(.CLK_FREQ    (100e6),
             .NCO_WIDTH   (16),
             .BAUD_RATE   (BAUD_RATE),
             .STOP_BITS   (STOP_BITS),
             .EVEN_PARITY (EVEN_PARITY)
-  ) 
+  )
   U_DUT (
     .clk       (clk),
     .rst       (rst),
@@ -54,7 +56,7 @@ module rx_tb;
     @(posedge clk)
     rst <= 0;
   end
-  
+
   // driver
   task tx_byte(input logic [7:0] data);
     $display("SENDING 0x%h", data);
@@ -62,7 +64,7 @@ module rx_tb;
     sent_data.push_front(data);
 
     // start bit
-    @(posedge bclk); 
+    @(posedge bclk);
     uart_rx <= 1'b0;
 
     // data, lsb first
@@ -87,7 +89,7 @@ module rx_tb;
   always begin
       @(posedge rdata_vld);
       expected_data = sent_data.pop_front();
-      
+
       if (rdata == expected_data) begin
         $display("RECEIVED DATA: 0x%h, OK", rdata);
       end else begin
@@ -115,10 +117,10 @@ module rx_tb;
     @(posedge rst);
     #2us;
     tx_byte(8'h12);
-    tx_byte(8'hFF);    
+    tx_byte(8'hFF);
     tx_byte(8'h00);
-    tx_byte(8'hAA);    
-    tx_byte(8'h55);    
+    tx_byte(8'hAA);
+    tx_byte(8'h55);
     #10us;
     $display("TESTBENCH END");
     if (pass_fail) begin
