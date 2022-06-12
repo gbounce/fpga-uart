@@ -104,15 +104,15 @@ module rx_tb;
 
   // data monitor
   always begin
-      @(posedge rvld);
-      expected_data = sent_data.pop_front();
+    @(posedge rvld);
+    expected_data = sent_data.pop_front();
 
-      if (rdata == expected_data) begin
-        $display("RECEIVED DATA: 0x%h, OK", rdata);
-      end else begin
-        $error("DATA MISMATCH, EXPECTED 0x%h, GOT 0x%h", expected_data, rdata);
-        pass_fail <= 1'b0;
-      end
+    if (rdata == expected_data) begin
+      $display("RECEIVED DATA: 0x%h, OK", rdata);
+    end else begin
+      $error("DATA MISMATCH, EXPECTED 0x%h, GOT 0x%h", expected_data, rdata);
+      pass_fail <= 1'b0;
+    end
   end
 
   // err monitor
@@ -141,9 +141,9 @@ module rx_tb;
     #10us;
     $display("TESTBENCH END");
     if (pass_fail) begin
-        $display("TEST PASSED :)");
+      $display("TEST PASSED :)");
     end else begin
-        $display("TEST FAILED :(");
+      $display("TEST FAILED :(");
     end
     $finish;
   end
