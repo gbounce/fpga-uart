@@ -24,12 +24,16 @@ module uart_rx #(
   parameter int STOP_BITS   = 1,
   parameter bit EVEN_PARITY = 0) // even = 1, odd = 0
 (
+  // globals
   input  logic       clk,
   input  logic       rst,
-  input  logic       uart_rx,
+  // status
   output logic       uart_err,
-  output logic       rdata_vld,
-  output logic [7:0] rdata
+  // control
+  output logic       rvld,
+  output logic [7:0] rdata,
+  // i/o  
+  input  logic       uart_rx
 );
 
   localparam real CLK_PER  = 1.0/CLK_FREQ;
@@ -126,12 +130,12 @@ module uart_rx #(
 
   always_ff @(posedge clk) begin
     if (rst) begin
-      bit_cnt   <= '0;
-      rdata_vld <= 1'b0;
-      uart_err  <= 1'b0;
+      bit_cnt  <= '0;
+      rvld     <= 1'b0;
+      uart_err <= 1'b0;
     end else begin
-      rdata_vld <= 1'b0;
-      uart_err  <= 1'b0;
+      rvld     <= 1'b0;
+      uart_err <= 1'b0;
 
       if (baud_rx_en && bit_vld) begin
         if ((STOP_BITS == 0 && bit_cnt < 9) || bit_cnt < 8+STOP_BITS) begin
@@ -145,7 +149,7 @@ module uart_rx #(
               rdata_sr[$size(rdata_sr)-STOP_BITS] == calc_parity) ||
               (STOP_BITS == 0 &&
                rdata_sr[$size(rdata_sr)-1] == calc_parity)) begin
-            rdata_vld <= 1'b1;
+            rvld <= 1'b1;
           end else begin
             uart_err <= 1'b1;
           end

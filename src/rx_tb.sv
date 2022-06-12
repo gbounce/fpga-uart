@@ -26,7 +26,7 @@ module rx_tb;
 
   logic clk, rst, bclk;
   logic uart_rx = 1;
-  logic uart_vld;
+  logic rvld;
   logic uart_err;
   logic [7:0] rdata;
   logic [7:0] sent_data [$];
@@ -40,12 +40,12 @@ module rx_tb;
             .EVEN_PARITY (EVEN_PARITY)
   )
   U_DUT (
-    .clk       (clk),
-    .rst       (rst),
-    .uart_rx   (uart_rx),
-    .uart_err  (uart_err),
-    .rdata_vld (rdata_vld),
-    .rdata     (rdata)
+    .clk      (clk),
+    .rst      (rst),
+    .uart_rx  (uart_rx),
+    .uart_err (uart_err),
+    .rvld     (rvld),
+    .rdata    (rdata)
   );
 
   initial begin
@@ -104,7 +104,7 @@ module rx_tb;
 
   // data monitor
   always begin
-      @(posedge rdata_vld);
+      @(posedge rvld);
       expected_data = sent_data.pop_front();
 
       if (rdata == expected_data) begin
