@@ -30,6 +30,7 @@ module tx_tb;
   logic [8:0] data_check; // data + parity
   logic [7:0] sent_data [$];
   logic pass_fail = 1'b1;
+  logic parity_check, parity_comp;
   int dcnt;
 
   uart_tx #(.CLK_FREQ    (100e6),
@@ -73,7 +74,7 @@ module tx_tb;
     rst <= 0;
   end
 
-  function print_settings ();
+  task print_settings;
     string set_parity;
     if (EVEN_PARITY) set_parity = "EVEN";
     else set_parity = "ODD"; // icarus choking on ternary
@@ -81,9 +82,9 @@ module tx_tb;
     $display("BAUD RATE SET TO %0d", BAUD_RATE);
     $display("PARITY SET TO %s", set_parity);
     $display("STOP BITS SET TO %0d", STOP_BITS);
-  endfunction
+  endtask
 
-  task wait_for_reset ();
+  task wait_for_reset;
     @(posedge rst);
     #2us;
     @(posedge clk);
@@ -118,11 +119,20 @@ module tx_tb;
       dcnt++;
     end
 
+    parity_check = EVEN_PARITY ? ^data_check[7:0] : ~^data_check[7:0];
     data_comp = sent_data.pop_front();
+    parity_comp = EVEN_PARITY ? ^data_comp[7:0] : ~^data_comp[7:0];
+
     if (data_comp != data_check[7:0]) begin
-        $error("Data mismatch, got 0x%0x, expected 0x%0x @ %0t", 
-               data_check[7:0], data_comp, $realtime);
-        pass_fail = 0;
+      $error("Data mismatch, got 0x%0x, expected 0x%0x @ %0t", 
+              data_check[7:0], data_comp, $realtime);
+      pass_fail = 0;
+    end
+
+    if (parity_comp != parity_check) begin
+      $error("Parity mismatch, got 0x%0x, expected 0x%0x @ %0t", 
+              parity_check, parity_comp, $realtime);
+      pass_fail = 0;
     end
 
     // check for stop bits
