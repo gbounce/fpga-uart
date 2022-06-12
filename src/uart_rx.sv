@@ -39,10 +39,10 @@ module uart_rx #(
   (* ASYNC_REG = "TRUE" *) logic [1:0] uart_rx_sync_sr;
   logic uart_rx_sync;
 
-  logic [NCO_WIDTH/2-1:0] start_bit_det_sr;
-  logic                   start_bit_det;
+  logic [7:0] start_bit_det_sr;
+  logic       start_bit_det;
 
-  logic [NCO_WIDTH-1:0] nco_accum = '0;
+  logic [NCO_WIDTH-1:0] nco_accum;
   logic                 baud_rx_en;
 
   logic [3:0]           center_sample_cnt;
@@ -80,7 +80,7 @@ module uart_rx #(
     end else if (busy) begin
       start_bit_det_sr <= '1;
     end else if (baud_rx_en) begin
-      start_bit_det_sr <= {start_bit_det_sr[NCO_WIDTH/2-2:0], uart_rx_sync};
+      start_bit_det_sr <= {start_bit_det_sr[6:0], uart_rx_sync};
     end
   end
 
