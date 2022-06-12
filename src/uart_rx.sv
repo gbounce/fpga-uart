@@ -32,13 +32,21 @@ module uart_rx #(
   // control
   output logic       rvld,
   output logic [7:0] rdata,
-  // i/o  
+  // i/o
   input  logic       uart_rx
 );
 
-  localparam real CLK_PER  = 1.0/CLK_FREQ;
-  localparam real BAUD_PER = 1.0/(BAUD_RATE*16);
-  localparam int  NCO_INCR = int'(2**NCO_WIDTH / (BAUD_PER / CLK_PER));
+  localparam real CLK_PER     = 1.0/CLK_FREQ;
+  localparam real BAUD_PER    = 1.0/(BAUD_RATE*16);
+  localparam int  NCO_INCR    = int'(2**NCO_WIDTH / (BAUD_PER / CLK_PER));
+
+  // adjust number of bits to sample based on stop bits
+  // stop bits = 0, 8 data, 1 parity
+  // stop bits != 0, 8 bits, 1 parity (min), plus any extra stop bits
+  localparam int  NUM_RX_BITS    = (STOP_BITS == 0) ? 9 : 8 + STOP_BITS;
+
+  // adjust bit position in sample vector based on stop bits
+  localparam int  PARITY_BIT_POS = (STOP_BITS == 0) ? 8 : 9;
 
   (* ASYNC_REG = "TRUE" *) logic [1:0] uart_rx_sync_sr;
   logic uart_rx_sync;
@@ -99,9 +107,7 @@ module uart_rx #(
     end else begin
       if (start_bit_det) begin
         busy <= 1'b1;
-      end else if (bit_vld &&
-                   ((STOP_BITS == 0 && bit_cnt == 9) ||
-                     bit_cnt == 8+STOP_BITS)) begin
+      end else if (bit_vld && bit_cnt == NUM_RX_BITS) begin
         busy <= 1'b0;
       end
     end
@@ -138,17 +144,14 @@ module uart_rx #(
       uart_err <= 1'b0;
 
       if (baud_rx_en && bit_vld) begin
-        if ((STOP_BITS == 0 && bit_cnt < 9) || bit_cnt < 8+STOP_BITS) begin
+        if (bit_cnt < NUM_RX_BITS) begin
           bit_cnt <= bit_cnt + 1;
         end else begin
           bit_cnt <= '0;
 
           // check for stop bit (active uart_rx signal) and parity
           // if no stop bit defined just check parity
-          if ((STOP_BITS != 0 && uart_rx_sync &&
-              rdata_sr[$size(rdata_sr)-STOP_BITS] == calc_parity) ||
-              (STOP_BITS == 0 &&
-               rdata_sr[$size(rdata_sr)-1] == calc_parity)) begin
+          if (uart_rx_sync && rdata_sr[PARITY_BIT_POS] == calc_parity) begin
             rvld <= 1'b1;
           end else begin
             uart_err <= 1'b1;
@@ -160,8 +163,7 @@ module uart_rx #(
 
   // lsb received first, shift in left to right so [0] = lsb
   always_ff @(posedge clk) begin
-    if (baud_rx_en && bit_vld && ((bit_cnt < 9+STOP_BITS && STOP_BITS == 0) ||
-        bit_cnt < 8 + STOP_BITS)) begin
+    if (baud_rx_en && bit_vld && bit_cnt < NUM_RX_BITS) begin
       rdata_sr <= {uart_rx_sync, rdata_sr[$size(rdata_sr)-1:1]};
     end
   end
